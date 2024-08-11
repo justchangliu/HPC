@@ -1,0 +1,93 @@
+### File locations:
+
+[Nets]:
+
+/ifs/scratch/azo2104_gp/cl4493/ARACNe3/data/output/Pieter_nets_0406
+
+[scripts]:
+
+/ifs/scratch/azo2104_gp/cl4493/Katie_Nets/script
+
+
+
+
+## submit jobs
+
+qsub -l mem=32G,time=03:: run_Rscript_Pieter_0405_1.sh
+qsub -l mem=32G,time=03:: run_Rscript_Pieter_0405_2.sh
+qsub -l mem=32G,time=03:: run_Rscript_Pieter_0405_3.sh
+qsub -l mem=32G,time=03:: run_Rscript_Pieter_0405_4.sh
+qsub -l mem=32G,time=03:: run_Rscript_Pieter_0405_5.sh
+
+
+$ qsub -l mem=128M,time=01:15:00 job.sh    # <-- 128M of memory, 1 hr 15 min
+$ qrsh -l mem=1G,time=:15:                 # <-- 1G of memory, 15 min
+
+
+
+echo "Finished D35_WT_NTD"
+
+echo "Finished D35_WT_neg"
+
+
+
+#### Transfer Data
+
+scp /Users/chang/Downloads/surface-hugo.txt cl4493@login.c2b2.columbia.edu:/ifs/scratch/azo2104_gp/cl4493/ARACNe3/data/
+
+
+
+
+####  Rscript for exporting Rdata after normalization of expression matrix
+co
+
+data <- load("/ifs/data/azo2104_gp/cl4493/Pieter/D20CAR_batch3.RData")
+nor_data <- D20_CAR_batch3[["RNA"]]@data
+write.table(nor_data, file = "/ifs/scratch/azo2104_gp/cl4493/Katie_Nets/raw_data/D20CAR_batch3.tsv", sep = "\t", quote = FALSE, row.names = TRUE,col.names = FALSE)
+rm(data,nor_data)
+
+
+
+### Rscript including normalization step for expression matrix 
+library(Seurat)
+
+load("/ifs/data/azo2104_gp/cl4493/Pieter/D20WT_batch3.RData")
+
+D20_WT_batch3 <- PercentageFeatureSet(D20_WT_batch3, pattern = "^MT-", col.name = "percent.mt")
+
+D20_WT_batch3 <- SCTransform(D20_WT_batch3, variable.features.n = 8000, vars.to.regress = 'percent.mt')
+
+nor_data <- D20_WT_batch3@assays$SCT@scale.data
+
+write.table(nor_data, file = "/ifs/scratch/azo2104_gp/cl4493/Katie_Nets/raw_data/D20_WT_batch3.tsv", sep = "\t", quote = FALSE, row.names = TRUE,col.names = FALSE)
+
+rm(data,nor_data)
+
+
+#### BASH script to run R
+
+#!/bin/bash
+
+module load R/4.3.2
+
+# Define the path to the R script you want to run
+R_SCRIPT_PATH="/ifs/scratch/azo2104_gp/cl4493/Katie_Ne$
+
+# Check if the R script exists
+if [ -f "$R_SCRIPT_PATH" ]; then
+    # Execute the R script using the Rscript command
+    Rscript $R_SCRIPT_PATH
+else
+    echo "The R script does not exist."
+fi
+
+
+
+
+#### BASH script to run ARACNe3 in HPC
+
+#!/bin/bash
+#
+/ifs/scratch/azo2104_gp/cl4493/ARACNe3/build/src/app/ARACNe3_app_release -e /ifs/scratch/azo2104_gp/cl4493/Katie_Nets/raw_data/D20CAR_batch3.tsv -r /ifs/scratch/azo2104_gp/cl4493/ARACNe3/data/surface-hugo.txt -o /ifs/scratch/azo2104_gp/cl4493/ARACNe3/data/output --runid D20CAR_batch3_surface
+
+echo "Finished D20CAR_batch3"
